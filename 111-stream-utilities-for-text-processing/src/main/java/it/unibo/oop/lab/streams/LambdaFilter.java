@@ -10,6 +10,7 @@ import java.io.Serial;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -53,7 +54,14 @@ public final class LambdaFilter extends JFrame {
             .sorted()
             .collect(Collectors.joining(" "))
         )),
-        WORDS_COUNT("Write the count for each word", Function.identity());
+        WORDS_COUNT("Write the count for each word", s -> String.valueOf(
+            Arrays.stream(s.toLowerCase().split(" "))
+            .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()))
+            .entrySet()
+            .stream()
+            .map(e -> e.getKey() + " -> " + e.getValue())
+            .collect(Collectors.joining(" "))
+        ));
 
         private final String commandName;
         private final Function<String, String> fun;
