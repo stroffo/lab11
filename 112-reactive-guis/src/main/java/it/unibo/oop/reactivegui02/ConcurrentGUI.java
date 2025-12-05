@@ -2,6 +2,9 @@ package it.unibo.oop.reactivegui02;
 
 import java.io.Serial;
 import java.lang.reflect.InvocationTargetException;
+import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -24,18 +27,21 @@ public final class ConcurrentGUI extends JFrame {
     private static final Logger LOGGER = LoggerFactory.getLogger(ConcurrentGUI.class);
 
     private final JLabel display = new JLabel();
+    private final Map<String, JButton> buttons = Map.of(
+        "up",   new JButton("up"),
+        "down", new JButton("down"),
+        "stop", new JButton("stop")
+    );
 
     public ConcurrentGUI() {
         super();
         JFrameUtil.dimensionJFrame(this);
         final JPanel panel = new JPanel();
         panel.add(display);
-        final JButton up = new JButton("up");
-        final JButton down = new JButton("down");
-        final JButton stop = new JButton("stop");
-        panel.add(up);
-        panel.add(down);
-        panel.add(stop);
+        panel.add(getButton("up"));
+        panel.add(getButton("down"));
+        panel.add(getButton("stop"));
+        
         this.getContentPane().add(panel);
         this.setVisible(true);
 
@@ -44,9 +50,19 @@ public final class ConcurrentGUI extends JFrame {
         /*
          * Register a listener that stops it
          */
-        stop.addActionListener(e -> agent.stopCounting());
-        up.addActionListener(e -> agent.changeDirection(Direction.UP));
-        down.addActionListener(e -> agent.changeDirection(Direction.DOWN));
+        getButton("up").addActionListener(e -> agent.changeDirection(Direction.UP));
+        getButton("down").addActionListener(e -> agent.changeDirection(Direction.DOWN));
+        getButton("stop").addActionListener(e -> agent.stopCounting());
+    }
+
+    private JButton getButton(final String btnLabel) {
+        return buttons.get(btnLabel);
+    }
+
+    private void doForAllButtons(Consumer<JButton> action) {
+        buttons.forEach((k, v) -> {
+            action.accept(v);
+        });
     }
 
     private final class Agent implements Runnable {
@@ -77,6 +93,8 @@ public final class ConcurrentGUI extends JFrame {
                     LOGGER.error(ex.getMessage(), ex);
                 }
             }
+
+            doForAllButtons(btn -> btn.setEnabled(false));
         }
 
         /**
