@@ -1,10 +1,10 @@
 package it.unibo.oop.reactivegui02;
 
+import java.awt.event.ActionListener;
 import java.io.Serial;
 import java.lang.reflect.InvocationTargetException;
-import java.util.Map;
+import java.util.Arrays;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -26,42 +26,29 @@ public final class ConcurrentGUI extends JFrame {
     private static final long serialVersionUID = 1L;
     private static final Logger LOGGER = LoggerFactory.getLogger(ConcurrentGUI.class);
 
+    private static Agent agent;
     private final JLabel display = new JLabel();
-    private final Map<String, JButton> buttons = Map.of(
-        "up",   new JButton("up"),
-        "down", new JButton("down"),
-        "stop", new JButton("stop")
-    );
 
     public ConcurrentGUI() {
         super();
         JFrameUtil.dimensionJFrame(this);
         final JPanel panel = new JPanel();
         panel.add(display);
-        panel.add(getButton("up"));
-        panel.add(getButton("down"));
-        panel.add(getButton("stop"));
-        
+
+        agent = new Agent();
+        new Thread(agent).start();
+
+        panel.add(Button.UP.get());
+        panel.add(Button.DOWN.get());
+        panel.add(Button.STOP.get());
+
         this.getContentPane().add(panel);
         this.setVisible(true);
-
-        final Agent agent = new Agent();
-        new Thread(agent).start();
-        /*
-         * Register a listener that stops it
-         */
-        getButton("up").addActionListener(e -> agent.changeDirection(Direction.UP));
-        getButton("down").addActionListener(e -> agent.changeDirection(Direction.DOWN));
-        getButton("stop").addActionListener(e -> agent.stopCounting());
     }
 
-    private JButton getButton(final String btnLabel) {
-        return buttons.get(btnLabel);
-    }
-
-    private void doForAllButtons(Consumer<JButton> action) {
-        buttons.forEach((k, v) -> {
-            action.accept(v);
+    private void doForAllButtons(final Consumer<JButton> action) {
+        Arrays.stream(Button.values()).forEach(v -> {
+            action.accept(v.get());
         });
     }
 
@@ -104,8 +91,33 @@ public final class ConcurrentGUI extends JFrame {
             this.stop = true;
         }
 
+        /**
+         * External command to change counting direction.
+         * 
+         * @param newDirection the new direction.
+         */
         public void changeDirection(final Direction newDirection) {
             this.currentDirection = newDirection;
+        }
+    }
+
+    private enum Button {
+        UP("Up", e -> agent.changeDirection(Direction.UP)),
+        DOWN("Down", e -> agent.changeDirection(Direction.DOWN)),
+        STOP("Stop", e -> agent.stopCounting());
+
+        private final String label;
+        private final ActionListener action;
+
+        Button(final String label, final java.awt.event.ActionListener action) {
+            this.label = label;
+            this.action = action;
+        }
+
+        public JButton get() {
+            final JButton btn = new JButton(this.label);
+            btn.addActionListener(action);
+            return btn;
         }
     }
 
@@ -115,10 +127,10 @@ public final class ConcurrentGUI extends JFrame {
 
         private final int step;
 
-        Direction(int i) {
+        Direction(final int i) {
             this.step = i;
         }
-        
+
         public int getStep() {
             return step;
         }
